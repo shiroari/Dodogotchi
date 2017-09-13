@@ -1,0 +1,12 @@
+{
+  "http.port": 9090,
+
+  "headers.host": "jira.netent.com",
+  "headers.origin": "https://jira.netent.com",
+  "headers.cookie": "",
+  "headers.referer": "",
+
+  "target.host": "jira.netent.com",
+  "target.port": 443,
+  "target.ssl": true
+}
