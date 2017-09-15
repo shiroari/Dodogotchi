@@ -40,11 +40,26 @@
 
     };
 
+    var toggleNightMode = function (dom) {
+      let nightModeOn = dom.body.classList.toggle('nightmode');
+      localStorage.setItem('nightmode', nightModeOn);
+    };
+  
+    var restoreNightMode = function (dom) {
+      let nightModeOn = localStorage.getItem('nightmode');
+      if (nightModeOn === 'true') {
+        dom.body.classList.add('nightmode');
+      }
+    };
+
+    restoreNightMode(dom);
+
     dom.monster.addEventListener(`click`, e => {
       e.preventDefault();
-      elements.monster.style.marginTop = `-50px`;
+      toggleNightMode(dom);
+      dom.monster.style.marginTop = `-50px`;
       setTimeout(() => {
-        elements.monster.style.marginTop = `0px`;
+        dom.monster.style.marginTop = `0px`;
       }, 250);
     });
 
@@ -168,7 +183,7 @@
     fn.handleEvolutionTimer(model.state, html.dom);
     fn.setUI(model, html.dom);
     html.dom.preloader.style.display = `none`;
-  };
+  };  
 
   /*
   * handleEvolutionTimer
@@ -331,6 +346,8 @@
         `assets/level-${state.evolutionLevel}/monster-state-6-v1.gif`
       ]
     };
+
+    monster.className = `monster--level-${state.evolutionLevel} monster--state-${randIndex}`;
 
     if (state.hp === 100) {
       // monster is full health
