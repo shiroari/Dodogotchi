@@ -1,4 +1,3 @@
-'use strict';
 
 (function () {
 
@@ -14,7 +13,7 @@
 
     let dom = {
 
-      body: document.getElementById(`tabagotchi`),
+      body: document.getElementById(`content`),
       preloader: document.getElementById(`preloader-container`),
       evolutionState: document.getElementById(`evolution-state`),
       evolutionUISegments: document.querySelectorAll('.evolution-segment'),
