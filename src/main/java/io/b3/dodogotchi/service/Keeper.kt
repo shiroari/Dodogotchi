@@ -1,46 +1,56 @@
-package io.b3.dodogotchi
+package io.b3.dodogotchi.service
 
+import io.b3.dodogotchi.model.Config
+import io.b3.dodogotchi.model.Event
+import io.b3.dodogotchi.model.Progress
+import io.b3.dodogotchi.model.State
 import java.time.Duration
 import java.time.Instant
 
-class Keeper(initModel: Model, private val conf: Config) {
+class Keeper(initState: State, private val conf: Config) {
 
     companion object {
         const val MAX_HEALTH = 100
     }
 
-    lateinit var model: Model
+    lateinit var state: State
+
+    var progress: Progress
+        get() = Progress(evolutionLevel = state.evolutionLevel,
+                evolutionStage = state.evolutionStage)
+        set(value) = updateState(state.copy(evolutionLevel = value.evolutionLevel,
+                    evolutionStage = value.evolutionStage))
 
     init {
-        updateModel(initModel)
+        updateState(initState)
     }
 
     fun update() {
-        updateModel(handleEventInt(null))
+        updateState(handleEventInt(null))
     }
 
     fun updateWithEvent(event: Event) {
-        updateModel(handleEventInt(event))
+        updateState(handleEventInt(event))
     }
 
-    private fun updateModel(newState: Model) {
+    private fun updateState(newState: State) {
         println(newState)
-        model = newState
+        state = newState
     }
 
-    private fun handleEventInt(event: Event?) : Model {
+    private fun handleEventInt(event: Event?) : State {
 
         val now = Instant.now().toEpochMilli()
 
-        var penalty = event?.overdueMax?: model.penalty
-        var radar = event?.overdueNumber?: model.radar
+        var penalty = event?.overdueMax?: state.penalty
+        var radar = event?.overdueNumber?: state.radar
 
         var hp = MAX_HEALTH - (MAX_HEALTH * penalty / conf.deathThresholdInDays)
         var stagnation = (penalty > conf.stagnationThreshold)
 
-        var evolutionLevel = model.evolutionLevel
-        var evolutionStage = model.evolutionStage
-        var evolutionTimestamp = model.evolutionTimestamp
+        var evolutionLevel = state.evolutionLevel
+        var evolutionStage = state.evolutionStage
+        var evolutionTimestamp = state.evolutionTimestamp
 
         if (hp <= 0) {
             hp = 0
@@ -49,7 +59,7 @@ class Keeper(initModel: Model, private val conf: Config) {
         }
 
         if (!stagnation
-                && model.updatedAt != 0L
+                && state.updatedAt != 0L
                 && (now - evolutionTimestamp >= Duration.ofMinutes(conf.evolutionInternalInMin).toMillis())) {
 
             if (evolutionLevel < 2) {
@@ -66,7 +76,7 @@ class Keeper(initModel: Model, private val conf: Config) {
             evolutionTimestamp = Instant.now().toEpochMilli()
         }
 
-        return Model(hp,
+        return State(hp,
                 evolutionLevel,
                 evolutionStage,
                 penalty,
@@ -76,4 +86,5 @@ class Keeper(initModel: Model, private val conf: Config) {
                 Instant.now().toEpochMilli(),
                 evolutionTimestamp)
     }
+
 }

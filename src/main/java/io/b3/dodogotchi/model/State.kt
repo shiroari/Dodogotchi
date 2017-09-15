@@ -1,6 +1,6 @@
-package io.b3.dodogotchi
+package io.b3.dodogotchi.model
 
-data class Model(
+data class State(
         val hp: Int,
         val evolutionLevel: Int,
         val evolutionStage: Int,

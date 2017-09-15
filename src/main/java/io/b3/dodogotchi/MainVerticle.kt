@@ -1,5 +1,10 @@
 package io.b3.dodogotchi
 
+import io.b3.dodogotchi.model.Config
+import io.b3.dodogotchi.model.State
+import io.b3.dodogotchi.service.Keeper
+import io.b3.dodogotchi.service.Updater
+import io.b3.dodogotchi.web.Rest
 import io.vertx.config.ConfigRetriever
 import io.vertx.config.ConfigRetrieverOptions
 import io.vertx.config.ConfigStoreOptions
@@ -38,8 +43,8 @@ class MainVerticle : AbstractVerticle() {
         }
     }
 
-    private fun loadModel() : Future<Model> {
-        return Future.succeededFuture(Model(100,
+    private fun loadModel() : Future<State> {
+        return Future.succeededFuture(State(100,
                 0,
                 0,
                 0,
