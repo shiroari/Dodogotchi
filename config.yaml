@@ -1,0 +1,26 @@
+---
+
+# Jira
+
+url: "https://my.jira.com"
+username: "admin"
+password: "admin"
+jql: "(project=DR) and (issuetype!=epic) and (status in ('In Progress','Review','Test In Progress','Ready To Test'))"
+
+# How often fetch jira data
+updateInternalInMin: 10
+
+# Getting evolution point time
+evolutionInternalInMin: 1440
+
+# When the first evolution should happen. It helps to align evolution time to a certain hour (e.g. standup time)
+evolutionStartHour: 9
+
+# Find all issues that stuck in one status for more then N days
+overdueThresholdInDays: 5
+
+# How many overdue issues stop evolution
+stagnationThreshold: 5
+
+# Kill if there one or more issues stuck for more then N days
+deathThresholdInDays: 12
