@@ -1,6 +1,6 @@
 package io.b3.dodogotchi
 
-import io.b3.dodogotchi.model.Config
+import io.b3.dodogotchi.config.Config
 import io.b3.dodogotchi.model.State
 import io.b3.dodogotchi.service.Keeper
 import io.b3.dodogotchi.service.Updater
@@ -27,13 +27,7 @@ class MainVerticle : AbstractVerticle() {
                     run(state, conf)
                 }
             }
-            .setHandler { ar ->
-                if (ar.succeeded()) {
-                    startFuture?.complete()
-                } else {
-                    startFuture?.fail(ar.cause())
-                }
-            }
+            .setHandler { startFuture?.completer() }
     }
 
     private fun run(initState: State, conf: Config): Future<CompositeFuture> {

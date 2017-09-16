@@ -1,6 +1,6 @@
 package io.b3.dodogotchi.service
 
-import io.b3.dodogotchi.model.Config
+import io.b3.dodogotchi.config.Config
 import io.b3.dodogotchi.model.Event
 import io.b3.dodogotchi.model.Progress
 import io.b3.dodogotchi.model.State

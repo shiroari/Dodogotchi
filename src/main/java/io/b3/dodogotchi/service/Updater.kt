@@ -1,6 +1,6 @@
 package io.b3.dodogotchi.service
 
-import io.b3.dodogotchi.model.Config
+import io.b3.dodogotchi.config.Config
 import io.vertx.core.Future
 import io.vertx.core.Vertx
 import io.vertx.core.http.HttpClient

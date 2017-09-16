@@ -1,4 +1,4 @@
-package io.b3.dodogotchi.model
+package io.b3.dodogotchi.config
 
 import io.vertx.core.json.JsonObject
 
