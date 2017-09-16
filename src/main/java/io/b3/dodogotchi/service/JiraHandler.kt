@@ -46,14 +46,14 @@ class JiraHandler: Handler {
             resp.handler { data ->
                 buf.appendBuffer(data)
             }.exceptionHandler { err ->
-                f.fail(err.cause)
+                f.fail(err)
             }.endHandler {
                 val event = handle(buf.toJsonObject(), conf)
                 f.complete(event)
             }
 
         }).exceptionHandler { err ->
-            f.fail(err.cause)
+            f.fail(err)
         }.end()
 
         return f

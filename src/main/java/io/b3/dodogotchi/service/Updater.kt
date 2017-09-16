@@ -37,7 +37,7 @@ class Updater(private val keeper: Keeper, private val conf: Config, private val 
             if (ar.succeeded()) {
                 keeper.updateWithEvent(ar.result())
             } else {
-                println(ar.cause())
+                println(ar.cause()?.localizedMessage?:"Unknown error")
                 keeper.update()
             }
         }

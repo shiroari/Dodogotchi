@@ -1,10 +1,14 @@
 ---
 
+# App
+
+dataDir: "/app/data"
+
 # Jira
 
 url: "https://my.jira.com"
-username: "admin"
-password: "admin"
+username: "username"
+password: "password"
 jql: "(project=DR) and (issuetype!=epic) and (status in ('In Progress','Review','Test In Progress','Ready To Test'))"
 
 # How often fetch jira data

@@ -3,6 +3,7 @@ package io.b3.dodogotchi.model
 import io.vertx.core.json.JsonObject
 
 data class Config(
+        val dataDir: String,
         val url: String,
         val username: String,
         val password: String,
@@ -16,6 +17,7 @@ data class Config(
 ) {
     companion object {
         fun parse(json: JsonObject) = Config(
+                json.getString("dataDir"),
                 json.getString("url"),
                 json.getString("username"),
                 json.getString("password"),

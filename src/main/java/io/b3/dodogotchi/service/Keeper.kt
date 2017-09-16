@@ -4,8 +4,11 @@ import io.b3.dodogotchi.model.Config
 import io.b3.dodogotchi.model.Event
 import io.b3.dodogotchi.model.Progress
 import io.b3.dodogotchi.model.State
+import io.b3.dodogotchi.onStateChange
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicReference
 
 class Keeper(initState: State, private val conf: Config) {
 
@@ -13,7 +16,11 @@ class Keeper(initState: State, private val conf: Config) {
         const val MAX_HEALTH = 100
     }
 
-    lateinit var state: State
+    private val stateHolder: AtomicReference<State> = AtomicReference()
+    private val listeners = CopyOnWriteArrayList<onStateChange>()
+
+    val state: State
+        get() = stateHolder.get()
 
     var progress: Progress
         get() = Progress(evolutionLevel = state.evolutionLevel,
@@ -25,6 +32,14 @@ class Keeper(initState: State, private val conf: Config) {
         updateState(initState)
     }
 
+    fun addListener(listener: onStateChange) {
+        listeners.add(listener)
+    }
+
+    private fun onChange(oldState: State?, newState: State) {
+        listeners.forEach { f -> f(oldState, newState) }
+    }
+
     fun update() {
         updateState(handleEventInt(null))
     }
@@ -34,8 +49,9 @@ class Keeper(initState: State, private val conf: Config) {
     }
 
     private fun updateState(newState: State) {
-        println(newState)
-        state = newState
+        val oldState: State? = stateHolder.get()
+        stateHolder.set(newState)
+        onChange(oldState = oldState, newState = newState)
     }
 
     private fun handleEventInt(event: Event?) : State {

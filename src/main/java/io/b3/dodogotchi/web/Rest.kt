@@ -3,6 +3,7 @@ package io.b3.dodogotchi.web
 import io.b3.dodogotchi.model.Progress
 import io.b3.dodogotchi.service.Keeper
 import io.vertx.core.Future
+import io.vertx.core.Handler
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpServer
@@ -46,19 +47,19 @@ class Rest(private val keeper: Keeper, private val vertx: Vertx) {
     //
     // Handlers
 
-    private val handleGetState = fun (cx: RoutingContext) {
+    private val handleGetState = { cx: RoutingContext ->
         val resp = cx.response()
         resp.statusCode = 200
         writeJson(resp, keeper.state)
     }
 
-    private val handleGetProgress = fun (cx: RoutingContext) {
+    private val handleGetProgress = { cx: RoutingContext ->
         val resp = cx.response()
         resp.statusCode = 200
         writeJson(resp, keeper.progress)
     }
 
-    private val handlePostProgress = fun (cx: RoutingContext) {
+    private val handlePostProgress = Handler<RoutingContext> { cx: RoutingContext ->
 
         val req = cx.request()
         val resp = cx.response()

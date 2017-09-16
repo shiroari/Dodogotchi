@@ -11,7 +11,10 @@ import io.vertx.config.ConfigStoreOptions
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.CompositeFuture
 import io.vertx.core.Future
+import io.vertx.core.buffer.Buffer
+import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
+import java.nio.file.Paths
 
 @Suppress("unused")
 class MainVerticle : AbstractVerticle() {
@@ -20,7 +23,9 @@ class MainVerticle : AbstractVerticle() {
         loadConfig()
             .compose { json ->
                 val conf = Config.parse(json)
-                startWithConfig(conf)
+                loadState(conf).compose { state ->
+                    run(state, conf)
+                }
             }
             .setHandler { ar ->
                 if (ar.succeeded()) {
@@ -31,52 +36,112 @@ class MainVerticle : AbstractVerticle() {
             }
     }
 
-    private fun startWithConfig(conf: Config): Future<CompositeFuture> {
-        return loadModel().compose { model ->
+    private fun run(initState: State, conf: Config): Future<CompositeFuture> {
 
-            val keeper = Keeper(model, conf)
-            val rest = Rest(keeper, vertx)
-            val updater = Updater(keeper, conf, vertx)
+        val keeper = Keeper(initState, conf)
+        val rest = Rest(keeper, vertx)
+        val updater = Updater(keeper, conf, vertx)
 
-            CompositeFuture.all(updater.start(),
-                    rest.start())
+        keeper.addListener { _: State?, newState: State ->
+            println(newState)
+            saveState(newState, conf)
         }
-    }
 
-    private fun loadModel() : Future<State> {
-        return Future.succeededFuture(State(100,
-                0,
-                0,
-                0,
-                0,
-                0,
-                false,
-                0,
-                0))
+        return CompositeFuture.all(
+                updater.start(),
+                rest.start())
     }
 
     private fun loadConfig() : Future<JsonObject> {
 
-//        val store0 = ConfigStoreOptions()
-//                .setType("configmap")
-//                .setConfig(JsonObject()
-//                        .put("namespace", "dodogotchi")
-//                        .put("name", "dodogotchi")
-//                )
+        val namespace = "dodogotchi"
+        val name = "dodogotchi"
 
-        val path = System.getProperty("config", "config.yaml")
+        val configmap = ConfigStoreOptions()
+                .setType("configmap")
+                .setConfig(JsonObject()
+                        .put("namespace", namespace)
+                        .put("name", name)
+                )
 
-        val store = ConfigStoreOptions()
-                .setType("file")
-                .setFormat("yaml")
-                .setConfig(JsonObject().put("path", path))
+        val cmOpts = ConfigRetrieverOptions()
+                .setScanPeriod(0)
+                .addStore(configmap)
 
-        val options = ConfigRetrieverOptions()
-                .addStore(store)
+        val cmRet = ConfigRetriever.getConfigAsFuture(
+                ConfigRetriever.create(vertx, cmOpts))
 
-        val retriever = ConfigRetriever.create(vertx, options)
+        println("Trying to load configmap [$namespace/$name] ...")
 
-        return ConfigRetriever.getConfigAsFuture(retriever)
+        return cmRet.recover { err ->
+
+            println("WARN: ${err.localizedMessage}")
+
+            val path = System.getProperty("config", "config.yaml")
+
+            println("Fallback to ${path}")
+
+            val file = ConfigStoreOptions()
+                    .setType("file")
+                    .setFormat("yaml")
+                    .setConfig(JsonObject().put("path", path))
+
+            val fileOpts = ConfigRetrieverOptions()
+                    .setScanPeriod(0)
+                    .addStore(file)
+
+            ConfigRetriever.getConfigAsFuture(
+                    ConfigRetriever.create(vertx, fileOpts))
+        }
     }
+
+    private fun getDataFile(conf: Config) = Paths.get(conf.dataDir, "state").toString()
+
+    private fun loadState(conf: Config) : Future<State> {
+        val f = Future.future<Buffer>()
+
+        vertx.fileSystem().readFile(getDataFile(conf))  { ar ->
+            if (ar.succeeded()) {
+                f.complete(ar.result())
+            } else {
+                println("WARN: State cannot be loaded from [${conf.dataDir}].")
+                f.fail(ar.cause())
+            }
+        }
+
+        return f.map { buf ->
+            try {
+                Json.decodeValue(buf, State::class.java)
+            } catch (err : Exception) {
+                println(err.localizedMessage)
+                throw err
+            }
+        }.otherwise {
+            State(100,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    false,
+                    0,
+                    0)
+        }
+    }
+
+    private fun saveState(state: State, conf: Config) : Future<Void> {
+        val f = Future.future<Void>()
+        vertx.fileSystem()
+                .writeFile(getDataFile(conf), Json.encodeToBuffer(state)) { ar ->
+                    if (ar.succeeded()) {
+                        f.complete()
+                    } else {
+                        println("WARN: State cannot be saved to [${conf.dataDir}].")
+                        f.fail(ar.cause())
+                    }
+                }
+        return f
+    }
+
 }
 

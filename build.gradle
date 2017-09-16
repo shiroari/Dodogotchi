@@ -35,6 +35,7 @@ dependencies {
   compile "io.vertx:vertx-core:$vertx_version"
   compile "io.vertx:vertx-config:$vertx_version"
   compile "io.vertx:vertx-config-yaml:$vertx_version"
+  compile "io.vertx:vertx-config-kubernetes-configmap:$vertx_version"
   compile "io.vertx:vertx-web:$vertx_version"
   compile "io.vertx:vertx-web-client:$vertx_version"
   compile "io.vertx:vertx-rx-java:$vertx_version"
