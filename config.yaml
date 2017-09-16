@@ -20,11 +20,17 @@ evolutionInternalInMin: 1440
 # When the first evolution should happen. It helps to align evolution time to a certain hour (e.g. standup time)
 evolutionStartHour: 9
 
-# Find all issues that stuck in one status for more then N days
-overdueThresholdInDays: 5
+# What parameter do we want to measure (status/speed/throughput)
+# - status     : time in the same status
+# - speed      : time from the moment when issue was started until it's done
+# - throughput : time from the moment when issue was created until it's done
+indicator: status
 
-# How many overdue issues stop evolution
-stagnationThreshold: 5
+# How do we aggregate parameters for found issues into single value (sum/max/avg/median)
+indicatorStrategy: max
 
-# Kill if there one or more issues stuck for more then N days
-deathThresholdInDays: 12
+# What value of indicator we consider as abnormal (dodogotchi is sick and doesn't evolve)
+indicatorThresholdInDays: 5
+
+# What value of indicator we consider as critical (dodogotchi is dead)
+indicatorThresholdMaxInDays: 10

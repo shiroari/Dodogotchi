@@ -23,10 +23,8 @@ class Keeper(initState: State, private val conf: Config) {
         get() = stateHolder.get()
 
     var progress: Progress
-        get() = Progress(evolutionLevel = state.evolutionLevel,
-                evolutionStage = state.evolutionStage)
-        set(value) = updateState(state.copy(evolutionLevel = value.evolutionLevel,
-                    evolutionStage = value.evolutionStage))
+        get() = Progress(level = state.level, levelProgress = state.levelProgress)
+        set(value) = updateState(state.copy(level = value.level, levelProgress = value.levelProgress))
 
     init {
         updateState(initState)
@@ -58,48 +56,46 @@ class Keeper(initState: State, private val conf: Config) {
 
         val now = Instant.now().toEpochMilli()
 
-        var penalty = event?.overdueMax?: state.penalty
-        var radar = event?.overdueNumber?: state.radar
-
-        var hp = MAX_HEALTH - (MAX_HEALTH * penalty / conf.deathThresholdInDays)
-        var stagnation = (penalty > conf.stagnationThreshold)
-
-        var evolutionLevel = state.evolutionLevel
-        var evolutionStage = state.evolutionStage
-        var evolutionTimestamp = state.evolutionTimestamp
-
-        if (hp <= 0) {
-            hp = 0
-            evolutionLevel = 0
-            evolutionStage = 0
+        var hp = if (event == null) {
+            state.hp
+        } else {
+            Math.min(0, MAX_HEALTH * (conf.indicatorThresholdMaxInDays - event.level) / (conf.indicatorThresholdMaxInDays
+                    - conf.indicatorThresholdInDays))
         }
 
-        if (!stagnation
-                && state.updatedAt != 0L
-                && (now - evolutionTimestamp >= Duration.ofMinutes(conf.evolutionInternalInMin).toMillis())) {
+        val sick = (hp < 40) // must be in sync with js
 
-            if (evolutionLevel < 2) {
-                if (evolutionStage < 9) {
-                    evolutionStage++
-                } else if (evolutionStage == 9) {
-                    evolutionStage = 0
-                    evolutionLevel++
-                }
-            } else if (evolutionLevel == 2) {
-                evolutionStage = 9
+        var level = state.level
+        var levelProgress = state.levelProgress
+        var evolutionTimestamp = state.evolutionTimestamp
+
+        if (hp > 0 && state.hp <= 0) {
+            level = 0
+            levelProgress = 0
+        }
+
+        if (!sick && ((now - evolutionTimestamp)
+                >= Duration.ofMinutes(conf.evolutionInternalInMin).toMillis())) {
+
+            if (levelProgress < 9) {
+                levelProgress++
+            } else {
+                levelProgress = 0
+                level++
+            }
+
+            if (level > 2) {
+                level = 2
+                levelProgress = 9
             }
 
             evolutionTimestamp = Instant.now().toEpochMilli()
         }
 
         return State(hp,
-                evolutionLevel,
-                evolutionStage,
-                penalty,
-                radar,
-                conf.overdueThresholdInDays,
-                stagnation,
-                Instant.now().toEpochMilli(),
+                level,
+                levelProgress,
+                event?.message?:state.message,
                 evolutionTimestamp)
     }
 

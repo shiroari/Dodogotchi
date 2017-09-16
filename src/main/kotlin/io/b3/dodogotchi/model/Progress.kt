@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class Progress
 @JsonCreator constructor(
-        @JsonProperty("evolutionLevel")
-        val evolutionLevel: Int,
-        @JsonProperty("evolutionStage")
-        val evolutionStage: Int
+        @JsonProperty("level")
+        val level: Int,
+        @JsonProperty("levelProgress")
+        val levelProgress: Int
 )

@@ -118,13 +118,9 @@
       },
       state: {
         hp: 0,
-        evolutionLevel: 0,
-        evolutionStage: 0,
-        penalty: 0,
-        radar: 0,
-        radarThreshold: 0,
-        stagnation: true,
-        disconneted: true
+        level: 0,
+        levelProgress: 0,
+        message: ''
       }
     }
   }
@@ -136,6 +132,7 @@
       .then((m) => fn.updateView(m, html))
       .catch((err) => {
         console.log(err);
+        model.state.disconnected = true
         fn.updateView(model, html);
       });
 
@@ -192,7 +189,7 @@
   * over a period of time.
   */
   fn.handleEvolutionTimer = function (state, dom) {
-    if (state.stagnation) {
+    if (state.hp < 40) {
       const uiSegments = dom.evolutionUISegments;
       for (let idx = 0; idx < uiSegments.length; idx++) {
         uiSegments[idx].classList.remove(`toggle`);
@@ -206,8 +203,8 @@
   * Update evolution UI.
   */
   fn.updateEvolutionUI = function (state, dom) {
-    const evolutionLevel = state.evolutionLevel;
-    const numberOfSegments = state.evolutionStage;
+    const evolutionLevel = state.level;
+    const numberOfSegments = state.levelProgress;
     const uiSegments = dom.evolutionUISegments;
 
     // we either havent evolved or are on a new evolution stage. turn off all evolution segments.
@@ -234,7 +231,7 @@
 
     dom.evolutionSilhouettes.classList.remove(`level-0`);
     dom.evolutionSilhouettes.classList.remove(`level-1`);
-    dom.evolutionSilhouettes.classList.add(`level-${state.evolutionLevel}`);
+    dom.evolutionSilhouettes.classList.add(`level-${state.level}`);
   };
 
   /*
@@ -247,14 +244,16 @@
     // handle hp update
     dom.monsterStatus.innerText = `${model.monster.status}`;
 
-    dom.evolutionState.innerText = `${model.state.evolutionStage}/10`;
+    dom.evolutionState.innerText = `${model.state.levelProgress}/10`;
     dom.hpProgressBar.style.width = `${model.state.hp}%`;
     dom.hpState.innerText = `${model.state.hp}/100`;
 
-    if (!model.state.disconneted) {
-      dom.tabCount.innerText = `You have ${model.state.radar} overdue issues (>${model.state.radarThreshold}Days).\nMaximum ${model.state.penalty} days`;
+    if (model.state.disconnected) {
+      dom.tabCount.innerText = 'No connection';
+    } else if (model.state.message) {
+      dom.tabCount.innerText = model.state.message;
     } else {
-      dom.tabCount.innerText = `No connection`;
+      dom.tabCount.innerText = '';
     }
 
     // set random monster asset from the variants
@@ -281,7 +280,7 @@
     });
 
     // level 1 and level 2 have color thus we need colorized poops
-    if (state.evolutionLevel > 0) {
+    if (state.level > 0) {
       allPoops.forEach(elem => {
         elem.classList.add(`color`);
       });
@@ -316,38 +315,38 @@
     const randIndex = Math.floor(Math.random() * 3);
     const stateAssets = {
       state1: [
-        `assets/level-${state.evolutionLevel}/monster-state-1-v1.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-1-v2.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-1-v3.gif`
+        `assets/level-${state.level}/monster-state-1-v1.gif`,
+        `assets/level-${state.level}/monster-state-1-v2.gif`,
+        `assets/level-${state.level}/monster-state-1-v3.gif`
       ],
       state2: [
-        `assets/level-${state.evolutionLevel}/monster-state-2-v1.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-2-v2.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-2-v3.gif`
+        `assets/level-${state.level}/monster-state-2-v1.gif`,
+        `assets/level-${state.level}/monster-state-2-v2.gif`,
+        `assets/level-${state.level}/monster-state-2-v3.gif`
       ],
       state3: [
-        `assets/level-${state.evolutionLevel}/monster-state-3-v1.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-3-v2.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-3-v3.gif`
+        `assets/level-${state.level}/monster-state-3-v1.gif`,
+        `assets/level-${state.level}/monster-state-3-v2.gif`,
+        `assets/level-${state.level}/monster-state-3-v3.gif`
       ],
       state4: [
-        `assets/level-${state.evolutionLevel}/monster-state-4-v1.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-4-v2.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-4-v3.gif`
+        `assets/level-${state.level}/monster-state-4-v1.gif`,
+        `assets/level-${state.level}/monster-state-4-v2.gif`,
+        `assets/level-${state.level}/monster-state-4-v3.gif`
       ],
       state5: [
-        `assets/level-${state.evolutionLevel}/monster-state-5-v1.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-5-v2.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-5-v3.gif`
+        `assets/level-${state.level}/monster-state-5-v1.gif`,
+        `assets/level-${state.level}/monster-state-5-v2.gif`,
+        `assets/level-${state.level}/monster-state-5-v3.gif`
       ],
       state6: [
-        `assets/level-${state.evolutionLevel}/monster-state-6-v1.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-6-v1.gif`,
-        `assets/level-${state.evolutionLevel}/monster-state-6-v1.gif`
+        `assets/level-${state.level}/monster-state-6-v1.gif`,
+        `assets/level-${state.level}/monster-state-6-v1.gif`,
+        `assets/level-${state.level}/monster-state-6-v1.gif`
       ]
     };
 
-    monster.className = `monster--level-${state.evolutionLevel} monster--state-${randIndex}`;
+    monster.className = `monster--level-${state.level} monster--state-${randIndex}`;
 
     if (state.hp === 100) {
       // monster is full health

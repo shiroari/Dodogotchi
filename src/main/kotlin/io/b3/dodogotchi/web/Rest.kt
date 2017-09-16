@@ -33,10 +33,7 @@ class Rest(private val keeper: Keeper, private val vertx: Vertx) {
         get("/api/state").handler(handleGetState)
         get("/api/progress").handler(handleGetProgress)
         post("/api/progress").handler(handlePostProgress)
-        get("/*").handler(StaticHandler.create()
-                .setWebRoot("webroot"))
-        //.setAllowRootFileSystemAccess(true)
-        //.setWebRoot("src/main/resources/webroot"))
+        get("/*").handler(StaticHandler.create())
     }
 
     private fun writeJson(resp: HttpServerResponse, obj: Any) {

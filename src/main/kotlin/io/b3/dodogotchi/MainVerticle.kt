@@ -26,8 +26,13 @@ class MainVerticle : AbstractVerticle() {
                 loadState(conf).compose { state ->
                     run(state, conf)
                 }
+            }.setHandler { ar ->
+                if (ar.succeeded()) {
+                    startFuture?.complete()
+                } else {
+                    startFuture?.fail(ar.cause())
+                }
             }
-            .setHandler { startFuture?.completer() }
     }
 
     private fun run(initState: State, conf: Config): Future<CompositeFuture> {
@@ -111,15 +116,11 @@ class MainVerticle : AbstractVerticle() {
                 throw err
             }
         }.otherwise {
-            State(100,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    false,
-                    0,
-                    0)
+            State(hp = 100,
+                    level = 0,
+                    levelProgress = 0,
+                    message = "",
+                    evolutionTimestamp = 0)
         }
     }
 

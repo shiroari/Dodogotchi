@@ -41,6 +41,9 @@ dependencies {
   compile "io.vertx:vertx-rx-java:$vertx_version"
   compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
   compile "org.jetbrains.kotlin:kotlin-runtime:$kotlin_version"
+
+  //testCompile "org.junit5."
+  //testCompile "org.junit."
 }
 
 ///
