@@ -16,7 +16,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 
-class JiraHandler: Handler {
+class JiraHandler(private val conf: Config) : Handler {
 
     companion object {
         val DATE_TIME_FORMAT: DateTimeFormatter = DateTimeFormatterBuilder()
@@ -28,7 +28,7 @@ class JiraHandler: Handler {
                 .toFormatter()
     }
 
-    override fun fetch(client: HttpClient, conf: Config): Future<Event> {
+    override fun fetch(client: HttpClient): Future<Event> {
 
         val baseUrl = conf.url
         val username = conf.username
@@ -53,7 +53,8 @@ class JiraHandler: Handler {
                 val body = buf.toJsonObject()
                 when (resp.statusCode()) {
                     200 -> {
-                        val event = handle(body, conf)
+                        val now = LocalDateTime.now()
+                        val event = handle(body, now)
                         f.complete(event)
                     }
                     else -> {
@@ -69,15 +70,15 @@ class JiraHandler: Handler {
         return f
     }
 
-    private fun handle(json: JsonObject, conf: Config): Event {
+    internal fun handle(json: JsonObject, now: LocalDateTime): Event {
 
         val issues = json.getJsonArray("issues", JsonArray())
                 .map(this::asJsonObject)
 
         val stats = when (conf.indicator) {
-            Indicator.STATUS -> getStatusTime(issues)
-            Indicator.SPEED -> getStartedTime(issues)
-            Indicator.THROUGHPUT -> getCreatedTime(issues)
+            Indicator.STATUS -> getStatusTime(issues, now)
+            Indicator.SPEED -> getStartedTime(issues, now)
+            Indicator.THROUGHPUT -> getCreatedTime(issues, now)
         }
 
         val level: Long = when (conf.indicatorStrategy) {
@@ -88,7 +89,7 @@ class JiraHandler: Handler {
                 if (avg == Double.NaN) {
                     0L
                 } else {
-                    Math.round(avg)
+                    avg.toLong()
                 }
             }
             IndicatorStrategy.MEDIAN -> {
@@ -102,7 +103,7 @@ class JiraHandler: Handler {
             }
         }
 
-        val msg: String = if (level < conf.indicatorThresholdInDays) "You are great!" else {
+        val msg: String = if (level < conf.indicatorThresholdInDays) "" else {
             when (conf.indicatorStrategy) {
                 IndicatorStrategy.MAX ->
                     "You have one issue stuck for more that $level days"
@@ -114,25 +115,24 @@ class JiraHandler: Handler {
         return Event(Math.toIntExact(level), msg)
     }
 
-    private fun getCreatedTime(issues: Iterable<JsonObject>): Iterable<Long> {
-        val now = LocalDateTime.now()
-        return issues.map { it.getJsonObject("fields") }
-                .map { hist -> hist.getString("created") }
+    private fun getCreatedTime(issues: Iterable<JsonObject>, now: LocalDateTime): Iterable<Long> {
+
+        return issues.mapNotNull { it.getJsonObject("fields") }
+                .mapNotNull { hist -> hist.getString("created") }
                 .map { toDateTime(it) }
                 .map { toDays(it, now) }
     }
 
-    private fun getStartedTime(issues: Iterable<JsonObject>): Iterable<Long> {
-        val now = LocalDateTime.now()
+    private fun getStartedTime(issues: Iterable<JsonObject>, now: LocalDateTime): Iterable<Long> {
 
         fun hasStatus(items: JsonArray): Boolean = items.map(this::asJsonObject)
                 .any { it.getString("field") == "status" }
 
-        return issues.map { it.getJsonObject("changelog") }
+        return issues.mapNotNull { it.getJsonObject("changelog") }
                 .mapNotNull { it.getJsonArray("histories")
                         .map(this::asJsonObject)
                         .filter { hist -> hasStatus(hist.getJsonArray("items")) }
-                        .map { hist -> hist.getString("created") }
+                        .mapNotNull { hist -> hist.getString("created") }
                         .map { toDateTime(it) }
                         .sorted()
                         .firstOrNull()
@@ -140,14 +140,12 @@ class JiraHandler: Handler {
                 .map { toDays(it, now) }
     }
 
-    private fun getStatusTime(issues: Iterable<JsonObject>): Iterable<Long> {
-
-        val now = LocalDateTime.now()
+    private fun getStatusTime(issues: Iterable<JsonObject>, now: LocalDateTime): Iterable<Long> {
 
         fun hasStatus(items: JsonArray): Boolean = items.map(this::asJsonObject)
                 .any { it.getString("field") == "status" }
 
-        return issues.map { it.getJsonObject("changelog") }
+        return issues.mapNotNull { it.getJsonObject("changelog") }
                 .mapNotNull { it.getJsonArray("histories")
                         .map(this::asJsonObject)
                         .filter { hist -> hasStatus(hist.getJsonArray("items")) }

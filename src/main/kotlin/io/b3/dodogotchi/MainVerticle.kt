@@ -2,6 +2,7 @@ package io.b3.dodogotchi
 
 import io.b3.dodogotchi.config.Config
 import io.b3.dodogotchi.model.State
+import io.b3.dodogotchi.service.JiraHandler
 import io.b3.dodogotchi.service.Keeper
 import io.b3.dodogotchi.service.Updater
 import io.b3.dodogotchi.web.Rest
@@ -26,29 +27,24 @@ class MainVerticle : AbstractVerticle() {
                 loadState(conf).compose { state ->
                     run(state, conf)
                 }
-            }.setHandler { ar ->
-                if (ar.succeeded()) {
-                    startFuture?.complete()
-                } else {
-                    startFuture?.fail(ar.cause())
-                }
             }
+            .setHandler(startFuture?.completer())
     }
 
-    private fun run(initState: State, conf: Config): Future<CompositeFuture> {
+    private fun run(initState: State, conf: Config): Future<Void> {
 
         val keeper = Keeper(initState, conf)
         val rest = Rest(keeper, vertx)
-        val updater = Updater(keeper, conf, vertx)
+        val handler = JiraHandler(conf)
+        val updater = Updater(handler, keeper, conf, vertx)
 
         keeper.addListener { _: State?, newState: State ->
             println(newState)
             saveState(newState, conf)
         }
 
-        return CompositeFuture.all(
-                updater.start(),
-                rest.start())
+        return CompositeFuture.all(updater.start(), rest.start())
+                .mapEmpty()
     }
 
     private fun loadConfig() : Future<JsonObject> {

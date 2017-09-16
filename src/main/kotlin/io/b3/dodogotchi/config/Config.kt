@@ -11,14 +11,14 @@ enum class IndicatorStrategy {
 }
 
 data class Config(
-        val dataDir: String,
-        val url: String,
-        val username: String,
-        val password: String,
-        val jql: String,
-        val updateInternalInMin: Long,
-        val evolutionInternalInMin: Long,
-        val evolutionStartHour: Int,
+        val dataDir: String = "",
+        val url: String = "",
+        val username: String = "",
+        val password: String = "",
+        val jql: String = "",
+        val updateInternalInMin: Long = 1,
+        val evolutionInternalInMin: Long = 1,
+        val evolutionStartHour: Int = 0,
         val indicator: Indicator = Indicator.STATUS,
         val indicatorStrategy: IndicatorStrategy = IndicatorStrategy.SUM,
         val indicatorThresholdInDays: Int = 5,

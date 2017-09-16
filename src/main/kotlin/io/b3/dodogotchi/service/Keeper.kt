@@ -7,6 +7,8 @@ import io.b3.dodogotchi.model.State
 import io.b3.dodogotchi.onStateChange
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
 
@@ -56,10 +58,10 @@ class Keeper(initState: State, private val conf: Config) {
 
         val now = Instant.now().toEpochMilli()
 
-        var hp = if (event == null) {
-            state.hp
-        } else {
-            Math.min(0, MAX_HEALTH * (conf.indicatorThresholdMaxInDays - event.level) / (conf.indicatorThresholdMaxInDays
+        var hp = when {
+            (event == null) -> state.hp
+            (event.level < conf.indicatorThresholdInDays) -> MAX_HEALTH
+            else -> Math.max(0, MAX_HEALTH * (conf.indicatorThresholdMaxInDays - event.level) / (conf.indicatorThresholdMaxInDays
                     - conf.indicatorThresholdInDays))
         }
 
@@ -72,24 +74,33 @@ class Keeper(initState: State, private val conf: Config) {
         if (hp > 0 && state.hp <= 0) {
             level = 0
             levelProgress = 0
+            evolutionTimestamp = 0
         }
 
-        if (!sick && ((now - evolutionTimestamp)
-                >= Duration.ofMinutes(conf.evolutionInternalInMin).toMillis())) {
+        if (!sick
+                && evolutionTimestamp > 0
+                && ((now - evolutionTimestamp) >= Duration.ofMinutes(conf.evolutionInternalInMin).toMillis())) {
 
-            if (levelProgress < 9) {
-                levelProgress++
-            } else {
+            levelProgress++
+
+            if (levelProgress > 9) {
                 levelProgress = 0
                 level++
+                if (level > 2) {
+                    levelProgress = 9
+                    level = 2
+                }
             }
 
-            if (level > 2) {
-                level = 2
-                levelProgress = 9
-            }
+            evolutionTimestamp = now
+        }
 
-            evolutionTimestamp = Instant.now().toEpochMilli()
+        if (evolutionTimestamp == 0L) {
+            evolutionTimestamp = LocalDateTime.now(ZoneOffset.UTC)
+                    .withHour(conf.evolutionStartHour)
+                    .withMinute(0)
+                    .toInstant(ZoneOffset.UTC)
+                    .toEpochMilli()
         }
 
         return State(hp,

@@ -11,9 +11,10 @@ import java.net.URI
 import java.util.concurrent.TimeUnit
 import io.vertx.rxjava.core.Vertx as JavaVertx
 
-class Updater(private val keeper: Keeper, private val conf: Config, private val vertx: Vertx) {
-
-    private val handler : Handler = JiraHandler()
+class Updater(private val handler : Handler,
+              private val keeper: Keeper,
+              private val conf: Config,
+              private val vertx: Vertx) {
 
     private val client : HttpClient by lazy {
         val baseUrl = URI.create(conf.url)
@@ -33,7 +34,7 @@ class Updater(private val keeper: Keeper, private val conf: Config, private val 
     }
 
     private fun update(tick: Long) {
-        handler.fetch(client, conf).setHandler { ar ->
+        handler.fetch(client).setHandler { ar ->
             if (ar.succeeded()) {
                 keeper.updateWithEvent(ar.result())
             } else {
