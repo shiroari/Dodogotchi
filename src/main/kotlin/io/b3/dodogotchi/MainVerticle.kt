@@ -15,20 +15,24 @@ import io.vertx.core.Future
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
+import io.vertx.core.logging.LoggerFactory
+import java.nio.file.NoSuchFileException
 import java.nio.file.Paths
 
 @Suppress("unused")
 class MainVerticle : AbstractVerticle() {
 
+    private val log = LoggerFactory.getLogger(MainVerticle::class.java)
+
     override fun start(startFuture: Future<Void>?) {
         loadConfig()
-            .compose { json ->
-                val conf = Config.parse(json)
-                loadState(conf).compose { state ->
-                    run(state, conf)
+                .compose { json ->
+                    val conf = Config.parse(json)
+                    loadState(conf).compose { state ->
+                        run(state, conf)
+                    }
                 }
-            }
-            .setHandler(startFuture?.completer())
+                .setHandler(startFuture?.completer())
     }
 
     private fun run(initState: State, conf: Config): Future<Void> {
@@ -39,7 +43,7 @@ class MainVerticle : AbstractVerticle() {
         val updater = Updater(handler, keeper, conf, vertx)
 
         keeper.addListener { _: State?, newState: State ->
-            println(newState)
+            log.debug("Saving new state... $newState")
             saveState(newState, conf)
         }
 
@@ -47,8 +51,15 @@ class MainVerticle : AbstractVerticle() {
                 .mapEmpty()
     }
 
-    private fun loadConfig() : Future<JsonObject> {
+    private fun loadConfig(): Future<JsonObject> {
+        return loadK8sConfig().recover { err ->
+            val path = System.getProperty("config", "config.yaml")
+            log.warn("Failed to load configmap: ${err.localizedMessage}. Fallback to $path")
+            loadFileConfig(path)
+        }
+    }
 
+    private fun loadK8sConfig(): Future<JsonObject> {
         val namespace = "dodogotchi"
         val name = "dodogotchi"
 
@@ -63,75 +74,58 @@ class MainVerticle : AbstractVerticle() {
                 .setScanPeriod(0)
                 .addStore(configmap)
 
-        val cmRet = ConfigRetriever.getConfigAsFuture(
+        log.info("Trying to load configmap [$namespace/$name] ...")
+
+        return ConfigRetriever.getConfigAsFuture(
                 ConfigRetriever.create(vertx, cmOpts))
+    }
 
-        println("Trying to load configmap [$namespace/$name] ...")
+    private fun loadFileConfig(path: String): Future<JsonObject> {
 
-        return cmRet.recover { err ->
+        val file = ConfigStoreOptions()
+                .setType("file")
+                .setFormat("yaml")
+                .setConfig(JsonObject().put("path", path))
 
-            println("WARN: ${err.localizedMessage}")
+        val fileOpts = ConfigRetrieverOptions()
+                .setScanPeriod(0)
+                .addStore(file)
 
-            val path = System.getProperty("config", "config.yaml")
-
-            println("Fallback to ${path}")
-
-            val file = ConfigStoreOptions()
-                    .setType("file")
-                    .setFormat("yaml")
-                    .setConfig(JsonObject().put("path", path))
-
-            val fileOpts = ConfigRetrieverOptions()
-                    .setScanPeriod(0)
-                    .addStore(file)
-
-            ConfigRetriever.getConfigAsFuture(
-                    ConfigRetriever.create(vertx, fileOpts))
-        }
+        return ConfigRetriever.getConfigAsFuture(
+                ConfigRetriever.create(vertx, fileOpts))
     }
 
     private fun getDataFile(conf: Config) = Paths.get(conf.dataDir, "state").toString()
 
-    private fun loadState(conf: Config) : Future<State> {
+    private fun loadState(conf: Config): Future<State> {
         val f = Future.future<Buffer>()
-
-        vertx.fileSystem().readFile(getDataFile(conf))  { ar ->
-            if (ar.succeeded()) {
-                f.complete(ar.result())
-            } else {
-                println("WARN: State cannot be loaded from [${conf.dataDir}].")
-                f.fail(ar.cause())
-            }
-        }
-
+        vertx.fileSystem()
+                .readFile(getDataFile(conf), f.completer())
         return f.map { buf ->
-            try {
-                Json.decodeValue(buf, State::class.java)
-            } catch (err : Exception) {
-                println(err.localizedMessage)
-                throw err
+            Json.decodeValue(buf, State::class.java)
+        }.recover { err ->
+            if (err.cause is NoSuchFileException) {
+                log.warn("State not found in [${conf.dataDir}]. Using default state.")
+            } else {
+                log.error("State cannot be loaded from [${conf.dataDir}]. Using default state.", err)
             }
-        }.otherwise {
-            State(hp = 100,
+            Future.succeededFuture(State(hp = 100,
                     level = 0,
                     levelProgress = 0,
                     message = "",
-                    evolutionTimestamp = 0)
+                    evolutionTimestamp = 0))
         }
     }
 
-    private fun saveState(state: State, conf: Config) : Future<Void> {
+    private fun saveState(state: State, conf: Config): Future<Void> {
         val f = Future.future<Void>()
         vertx.fileSystem()
-                .writeFile(getDataFile(conf), Json.encodeToBuffer(state)) { ar ->
-                    if (ar.succeeded()) {
-                        f.complete()
-                    } else {
-                        println("WARN: State cannot be saved to [${conf.dataDir}].")
-                        f.fail(ar.cause())
-                    }
-                }
-        return f
+                .writeFile(getDataFile(conf), Json.encodeToBuffer(state),
+                        f.completer())
+        return f.recover { err ->
+            log.warn("State cannot be saved to [${conf.dataDir}]", err)
+            Future.failedFuture(err)
+        }
     }
 
 }

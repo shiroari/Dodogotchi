@@ -5,6 +5,7 @@ import io.vertx.core.Future
 import io.vertx.core.Vertx
 import io.vertx.core.http.HttpClient
 import io.vertx.core.http.HttpClientOptions
+import io.vertx.core.logging.LoggerFactory
 import io.vertx.rxjava.core.RxHelper
 import rx.Observable
 import java.net.URI
@@ -15,6 +16,8 @@ class Updater(private val handler : Handler,
               private val keeper: Keeper,
               private val conf: Config,
               private val vertx: Vertx) {
+
+    private val log = LoggerFactory.getLogger(Updater::class.java)
 
     private val client : HttpClient by lazy {
         val baseUrl = URI.create(conf.url)
@@ -38,7 +41,7 @@ class Updater(private val handler : Handler,
             if (ar.succeeded()) {
                 keeper.updateWithEvent(ar.result())
             } else {
-                println(ar.cause()?.localizedMessage?:"Unknown error")
+                log.warn(ar.cause().message)
                 keeper.update()
             }
         }

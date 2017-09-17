@@ -9,6 +9,8 @@ import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpClient
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
+import io.vertx.core.logging.LoggerFactory
+import java.io.IOException
 import java.net.URLEncoder
 import java.time.Duration
 import java.time.LocalDateTime
@@ -18,8 +20,11 @@ import java.time.format.DateTimeFormatterBuilder
 
 class JiraHandler(private val conf: Config) : Handler {
 
+    private val log = LoggerFactory.getLogger(JiraHandler::class.java)
+
     companion object {
-        val DATE_TIME_FORMAT: DateTimeFormatter = DateTimeFormatterBuilder()
+        private val UTF_8 = "UTF-8"
+        private val DATE_TIME_FORMAT: DateTimeFormatter = DateTimeFormatterBuilder()
                 .parseCaseInsensitive()
                 .append(DateTimeFormatter.ISO_LOCAL_DATE)
                 .appendLiteral('T')
@@ -28,43 +33,47 @@ class JiraHandler(private val conf: Config) : Handler {
                 .toFormatter()
     }
 
+    private fun fetchError(): IOException = IOException("Cannot fetch data from jira")
+
     override fun fetch(client: HttpClient): Future<Event> {
 
         val baseUrl = conf.url
-        val username = conf.username
-        val password = conf.password
-        val jql = URLEncoder.encode(conf.jql, "UTF-8")
+        val username = URLEncoder.encode(conf.username, UTF_8)
+        val password = URLEncoder.encode(conf.password, UTF_8)
+        val jql = URLEncoder.encode(conf.jql, UTF_8)
 
-        val requestUri = "$baseUrl/rest/api/2/search?jql=$jql&expand=changelog&os_username=$username&os_password=$password"
+        val requestUri = "$baseUrl/rest/api/2/search?jql=$jql&expand=changelog"
+        val requestUriWithAuth = "$requestUri&os_username=$username&os_password=$password"
 
         val f = Future.future<Event>()
 
-        client.get(requestUri, { resp ->
+        log.debug("Sending request: $requestUri")
 
-            println("RESPONSE: ${resp.statusCode()} ${resp.statusMessage()}")
+        client.get(requestUriWithAuth, { resp ->
+
+            log.debug("Response: ${resp.statusCode()} ${resp.statusMessage()}")
 
             val buf = Buffer.buffer()
 
             resp.handler { data ->
                 buf.appendBuffer(data)
             }.exceptionHandler { err ->
-                f.fail(err)
+                log.error(err.message)
+                f.fail(fetchError())
             }.endHandler {
                 val body = buf.toJsonObject()
                 when (resp.statusCode()) {
-                    200 -> {
-                        val now = LocalDateTime.now()
-                        val event = handle(body, now)
-                        f.complete(event)
-                    }
+                    200 -> f.complete(handle(body, LocalDateTime.now()))
                     else -> {
-                        f.fail(Exception("Unexpected response: $body"))
+                        log.error("Unexpected response: $body")
+                        f.fail(fetchError())
                     }
                 }
             }
 
         }).exceptionHandler { err ->
-            f.fail(err)
+            log.error(err.message)
+            f.fail(fetchError())
         }.end()
 
         return f
