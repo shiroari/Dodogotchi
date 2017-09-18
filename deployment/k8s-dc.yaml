@@ -41,7 +41,7 @@ items:
         volumes:
         - name: config
           configMap:
-            name: dodogotchi
+            name: dodogotchi-config
         - name: dodogotchi-pv
           persistentVolumeClaim:
             claimName: dodogotchi-pvc

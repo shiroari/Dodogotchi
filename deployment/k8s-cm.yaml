@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: dodogotchi
+  name: dodogotchi-config
   namespace: dodogotchi
 data:
   config.yaml: |-
