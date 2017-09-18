@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: dodogotchi
+    namespace: dodogotchi
+  spec:
+    ports:
+    - port: 9090
+      targetPort: 9090
+    selector:
+      name: dodogotchi
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    name: dodogotchi
+    namespace: dodogotchi
+  spec:
+    replica: 1
+    template:
+      metadata:
+        labels:
+          name: dodogotchi
+      spec:
+        containers:
+        - name: dodogotchi
+          image: artifactory.netent.com:5000/netent/dodogotchi:0.0.6
+          ports:
+          - containerPort: 9090
+          resources:
+            requests:
+              memory: 100Mi
+              cpu: 100m
+          volumeMounts:
+          - name: config
+            mountPath: /app/etc
+          - name: dodogotchi-pv
+            mountPath: /app/data
+        volumes:
+        - name: config
+          configMap:
+            name: dodogotchi
+        - name: dodogotchi-pv
+          persistentVolumeClaim:
+            claimName: dodogotchi-pvc
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: dodogotchi-pvc
+    namespace: dodogotchi
+    annotations:
+      volume.beta.kubernetes.io/storage-class: gluster-dyn
+  spec:
+    accessModes:
+    - ReadWriteMany
+    persistentVolumeReclaimPolicy: Delete
+    resources:
+      requests:
+        storage: 1Gi

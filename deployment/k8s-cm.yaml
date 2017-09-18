@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dodogotchi
+  namespace: dodogotchi
+data:
+  config.yaml: |-
+    # Storage
+    dataDir: "/app/data"
+
+    # Jira
+    url: "https://jira.netent.com"
+    username: "restuser"
+    password: "restuser"
+    jql: "(project=DR) and (issuetype!=epic) and (status in ('In Progress','Review','Test In Progress','Ready To Test'))"
+
+    # How often fetch jira data
+    updateInternalInMin: 10
+
+    # Getting evolution point time
+    evolutionInternalInMin: 1440
+
+    # When the first evolution should happen. It helps to align evolution time to a certain hour (e.g. standup time)
+    evolutionStartHour: 9
+
+    # What parameter do we want to measure (status/speed/throughput)
+    # - status     : time in the same status
+    # - speed      : time from the moment when issue was started until it's done
+    # - throughput : time from the moment when issue was created until it's done
+    indicator: status
+
+    # How do we aggregate parameters for found issues into single value (sum/max/avg/median)
+    indicatorStrategy: max
+
+    # What value of indicator we consider as abnormal (dodogotchi is sick and doesn't evolve)
+    indicatorThresholdInDays: 5
+
+    # What value of indicator we consider as critical (dodogotchi is dead)
+    indicatorThresholdMaxInDays: 12
