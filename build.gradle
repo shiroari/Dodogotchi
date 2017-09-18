@@ -91,7 +91,7 @@ shadowJar {
   baseName = 'app'
   classifier = 'shadow'
   manifest {
-    attributes 'Main-Verticle': 'io.b3.jumper.Server'
+    attributes 'Main-Verticle': 'io.b3.dodogotchi.MainVerticle'
   }
   mergeServiceFiles {
     include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
