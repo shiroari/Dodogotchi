@@ -112,12 +112,18 @@ class JiraHandler(private val conf: Config) : Handler {
             }
         }
 
-        val msg: String = if (level < conf.indicatorThresholdInDays) "" else {
+        val num = stats.count()
+
+        val msg: String = if (num == 0) {
+            "There are no issues. Go grab some coffee."
+        } else if (level < conf.indicatorThresholdInDays) {
+            "You have $num issue(s) and you are doing great!"
+        } else {
             when (conf.indicatorStrategy) {
                 IndicatorStrategy.MAX ->
                     "You have one issue stuck for more that $level days"
                 IndicatorStrategy.SUM, IndicatorStrategy.AVG, IndicatorStrategy.MEDIAN ->
-                    "You have issues stuck for more that $level days"
+                    "You have $num issues stuck for more that $level days"
             }
         }
 

@@ -23,7 +23,7 @@ class StrategyTest {
         val conf = Config()
         val event = JiraHandler(conf).handle(json, LocalDateTime.now())
 
-        assertEquals(Event.EMPTY, event)
+        assertEquals(0, event.level)
     }
 
     @ParameterizedTest
@@ -33,7 +33,8 @@ class StrategyTest {
         val conf = Config(indicator = indicator)
         val event = JiraHandler(conf).handle(json, LocalDateTime.now())
 
-        assertEquals(Event.EMPTY, event)
+        assertEquals(0, event.level)
+        assertEquals("There are no issues. Go grab some coffee.", event.message)
     }
 
     @ParameterizedTest
@@ -44,7 +45,8 @@ class StrategyTest {
         val conf = Config(indicator = indicator)
         val event = JiraHandler(conf).handle(json, LocalDateTime.now())
 
-        assertEquals(Event.EMPTY, event)
+        assertEquals(0, event.level)
+        assertEquals("There are no issues. Go grab some coffee.", event.message)
     }
 
     @ParameterizedTest
@@ -75,7 +77,7 @@ class StrategyTest {
 
         val event = JiraHandler(conf).handle(json, now)
 
-        assertEquals("", event.message)
+        assertEquals("You have 1 issue(s) and you are doing great!", event.message)
     }
 
     @Test
