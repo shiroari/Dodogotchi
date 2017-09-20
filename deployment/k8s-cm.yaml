@@ -32,8 +32,10 @@ data:
     # How do we aggregate parameters for found issues into single value (sum/max/avg/median)
     indicatorStrategy: max
 
-    # What value of indicator we consider as abnormal (dodogotchi is sick and doesn't evolve)
-    indicatorThresholdInDays: 5
+    # What value of indicator we consider as abnormal (dodogotchi's hp starts going down and
+    # after hitting 20% dodogotchi stops evolving)
+    indicatorThresholdInDays: 4
 
-    # What value of indicator we consider as critical (dodogotchi is dead)
-    indicatorThresholdMaxInDays: 12
+    # What value of indicator we consider as critical (dodogotchi is dead). Range between
+    # (indicatorThresholdInDays; indicatorThresholdMaxInDays) is reflected by hp indicator
+    indicatorThresholdMaxInDays: 10
