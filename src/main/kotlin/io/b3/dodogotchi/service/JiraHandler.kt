@@ -13,8 +13,7 @@ import io.vertx.core.logging.LoggerFactory
 import java.io.IOException
 import java.net.URLEncoder
 import java.time.Duration
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 
@@ -64,7 +63,7 @@ class JiraHandler(private val conf: Config) : Handler {
                 val body = buf.toJsonObject()
                 when (resp.statusCode()) {
                     200 -> {
-                        val event = handle(body, LocalDateTime.now())
+                        val event = handle(body, ZonedDateTime.now())
                         log.info("Response has been successfully processed: $event")
                         f.complete(event)
                     }
@@ -83,7 +82,7 @@ class JiraHandler(private val conf: Config) : Handler {
         return f
     }
 
-    internal fun handle(json: JsonObject, now: LocalDateTime): Event {
+    internal fun handle(json: JsonObject, now: ZonedDateTime): Event {
 
         val issues = json.getJsonArray("issues", JsonArray())
                 .map(this::asJsonObject)
@@ -94,11 +93,14 @@ class JiraHandler(private val conf: Config) : Handler {
             Indicator.THROUGHPUT -> getCreatedTime(issues, now)
         }
 
+        val anomalies = stats.map { it - conf.indicatorThresholdInDays + 1 }
+                .filter { it > 0 }
+
         val level: Long = when (conf.indicatorStrategy) {
-            IndicatorStrategy.SUM -> stats.sum()
-            IndicatorStrategy.MAX -> stats.max() ?: 0L
+            IndicatorStrategy.SUM -> anomalies.sum()
+            IndicatorStrategy.MAX -> anomalies.max() ?: 0L
             IndicatorStrategy.AVG -> {
-                val avg = stats.average()
+                val avg = anomalies.average()
                 if (avg == Double.NaN) {
                     0L
                 } else {
@@ -106,7 +108,7 @@ class JiraHandler(private val conf: Config) : Handler {
                 }
             }
             IndicatorStrategy.MEDIAN -> {
-                val sorted = stats.sorted()
+                val sorted = anomalies.sorted()
                 val len = sorted.size
                 when {
                     len == 0 -> 0L
@@ -116,29 +118,29 @@ class JiraHandler(private val conf: Config) : Handler {
             }
         }
 
-        val num = stats.count()
+        val nIssues = stats.count()
+        val nAnomalies = anomalies.count()
 
-        val msg: String = if (num == 0) {
+        val msg: String = if (nIssues == 0) {
             "There are no issues. Go grab some coffee."
-        } else if (level < conf.indicatorThresholdInDays) {
-            if (num == 1) {
+        } else if (nAnomalies == 0) {
+            if (nIssues == 1) {
                 "You have one issue in progress and you are doing great!"
             } else {
-                "You have $num issues in progress and you are doing great!"
+                "You have $nIssues issues in progress and you are doing great!"
             }
         } else {
-            when (conf.indicatorStrategy) {
-                IndicatorStrategy.MAX ->
-                    "You have one issue stuck for more than $level days"
-                IndicatorStrategy.SUM, IndicatorStrategy.AVG, IndicatorStrategy.MEDIAN ->
-                    "You have $num issues stuck for more than $level days"
+            if (nAnomalies == 1) {
+                "You have one issue in progress that doesn't look good."
+            } else {
+                "You have $nAnomalies issues in progress that don't look good."
             }
         }
 
         return Event(Math.toIntExact(level), msg)
     }
 
-    private fun getCreatedTime(issues: Iterable<JsonObject>, now: LocalDateTime): Iterable<Long> {
+    private fun getCreatedTime(issues: Iterable<JsonObject>, now: ZonedDateTime): Iterable<Long> {
 
         return issues.mapNotNull { it.getJsonObject("fields") }
                 .mapNotNull { hist -> hist.getString("created") }
@@ -146,7 +148,7 @@ class JiraHandler(private val conf: Config) : Handler {
                 .map { toDays(it, now) }
     }
 
-    private fun getStartedTime(issues: Iterable<JsonObject>, now: LocalDateTime): Iterable<Long> {
+    private fun getStartedTime(issues: Iterable<JsonObject>, now: ZonedDateTime): Iterable<Long> {
 
         fun hasStatus(items: JsonArray): Boolean = items.map(this::asJsonObject)
                 .any { it.getString("field") == "status" }
@@ -163,7 +165,7 @@ class JiraHandler(private val conf: Config) : Handler {
                 .map { toDays(it, now) }
     }
 
-    private fun getStatusTime(issues: Iterable<JsonObject>, now: LocalDateTime): Iterable<Long> {
+    private fun getStatusTime(issues: Iterable<JsonObject>, now: ZonedDateTime): Iterable<Long> {
 
         fun hasStatus(items: JsonArray): Boolean = items.map(this::asJsonObject)
                 .any { it.getString("field") == "status" }
@@ -180,13 +182,12 @@ class JiraHandler(private val conf: Config) : Handler {
                 .map { toDays(it, now) }
     }
 
-    private fun toDateTime(dateString: String): LocalDateTime {
-        return LocalDateTime.parse(dateString, DATE_TIME_FORMAT)
+    private fun toDateTime(dateString: String): ZonedDateTime {
+        return ZonedDateTime.parse(dateString, DATE_TIME_FORMAT)
     }
 
-    private fun toDays(datetime: LocalDateTime, now: LocalDateTime): Long {
-        val zone = ZoneOffset.UTC
-        val secs = now.toEpochSecond(zone) - datetime.toEpochSecond(zone)
+    private fun toDays(datetime: ZonedDateTime, now: ZonedDateTime): Long {
+        val secs = now.toEpochSecond() - datetime.toEpochSecond()
         return Duration.ofSeconds(secs).toDays()
     }
 

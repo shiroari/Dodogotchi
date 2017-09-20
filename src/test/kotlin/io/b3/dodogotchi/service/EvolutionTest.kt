@@ -8,14 +8,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.function.Executable
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import java.time.*
 
 @Tag("junit5")
 class EvolutionTest {
 
-    fun newKeeper(level: Int = 0,
+    private fun newKeeper(level: Int = 0,
                   levelProgress: Int = 0,
                   evolutionInternalInMin: Long = 0L,
                   evolutionStartHour: Int = 0) =
@@ -25,7 +23,7 @@ class EvolutionTest {
                     message = "",
                     evolutionTimestamp = 0),
             Config(indicatorThresholdInDays = 2,
-                    indicatorThresholdMaxInDays = 12,
+                    indicatorThresholdMaxInDays = 11,
                     evolutionInternalInMin = evolutionInternalInMin,
                     evolutionStartHour = evolutionStartHour))
 
@@ -50,7 +48,7 @@ class EvolutionTest {
 
         val keeper = newKeeper()
 
-        keeper.updateWithEvent(Event(12, "Bye bye world"))
+        keeper.updateWithEvent(Event(11, "Bye bye world"))
 
         val state = keeper.state
 
@@ -79,7 +77,7 @@ class EvolutionTest {
         )
 
         for (i in 3..10) {
-            keeper.updateWithEvent(Event(8, ""))
+            keeper.updateWithEvent(Event(6, ""))
         }
 
         val state2 = keeper.state
@@ -97,7 +95,7 @@ class EvolutionTest {
         val keeper = newKeeper()
 
         for (i in 0..5) {
-            keeper.updateWithEvent(Event(9, "Sick"))
+            keeper.updateWithEvent(Event(7, "Sick"))
         }
 
         val state = keeper.state
@@ -132,7 +130,7 @@ class EvolutionTest {
 
         val keeper = newKeeper(level = 2, levelProgress = 4)
 
-        keeper.updateWithEvent(Event(12, "Die"))
+        keeper.updateWithEvent(Event(11, "Die"))
 
         val state = keeper.state
 
@@ -148,7 +146,7 @@ class EvolutionTest {
 
         val keeper = newKeeper(level = 2, levelProgress = 4)
 
-        keeper.updateWithEvent(Event(12, "Die"))
+        keeper.updateWithEvent(Event(11, "Die"))
         keeper.updateWithEvent(Event(0, ""))
 
         val state = keeper.state
@@ -184,14 +182,14 @@ class EvolutionTest {
 
         val keeper = newKeeper()
 
-        keeper.updateWithEvent(Event(2, "Ok"))
+        keeper.updateWithEvent(Event(0, "Ok"))
         assertEquals(100, keeper.state.hp)
 
-        keeper.updateWithEvent(Event(3, "Still Ok"))
-        assertEquals(90, keeper.state.hp)
+        keeper.updateWithEvent(Event(6, "Still Ok"))
+        assertEquals(40, keeper.state.hp)
 
-        keeper.updateWithEvent(Event(10, "Sick"))
-        assertEquals(20, keeper.state.hp)
+        keeper.updateWithEvent(Event(7, "Sick"))
+        assertEquals(30, keeper.state.hp)
     }
 
     @Test
@@ -199,7 +197,7 @@ class EvolutionTest {
 
         val keeper = newKeeper(level = 2, levelProgress = 4)
 
-        keeper.updateWithEvent(Event(7, ""))
+        keeper.updateWithEvent(Event(5, ""))
         keeper.update()
         keeper.update()
 
@@ -220,7 +218,7 @@ class EvolutionTest {
         keeper.update()
 
         val instant = Instant.ofEpochMilli(keeper.state.evolutionTimestamp)
-        val datetime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC.normalized())
+        val datetime = ZonedDateTime.ofInstant(instant, ZoneId.systemDefault())
 
         assertEquals(10, datetime.hour)
         assertEquals(0, datetime.minute)

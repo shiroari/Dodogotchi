@@ -3,7 +3,6 @@ package io.b3.dodogotchi.service
 import io.b3.dodogotchi.config.Config
 import io.b3.dodogotchi.config.Indicator
 import io.b3.dodogotchi.config.IndicatorStrategy
-import io.b3.dodogotchi.model.Event
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -12,7 +11,8 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
-import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @Tag("junit5")
 class StrategyTest {
@@ -21,7 +21,7 @@ class StrategyTest {
     fun shouldReturnEmptyIfBodyEmpty() {
         val json = JsonObject()
         val conf = Config()
-        val event = JiraHandler(conf).handle(json, LocalDateTime.now())
+        val event = JiraHandler(conf).handle(json, dayOfMonth25())
 
         assertEquals(0, event.level)
     }
@@ -31,7 +31,7 @@ class StrategyTest {
     fun shouldReturnEmptyIfThereAreNoIssues(indicator: Indicator) {
         val json = JsonObject().put("issues", JsonArray())
         val conf = Config(indicator = indicator)
-        val event = JiraHandler(conf).handle(json, LocalDateTime.now())
+        val event = JiraHandler(conf).handle(json, dayOfMonth25())
 
         assertEquals(0, event.level)
         assertEquals("There are no issues. Go grab some coffee.", event.message)
@@ -43,7 +43,7 @@ class StrategyTest {
         val json = JsonObject().put("issues",
                 JsonArray(listOf(JsonObject())))
         val conf = Config(indicator = indicator)
-        val event = JiraHandler(conf).handle(json, LocalDateTime.now())
+        val event = JiraHandler(conf).handle(json, dayOfMonth25())
 
         assertEquals(0, event.level)
         assertEquals("There are no issues. Go grab some coffee.", event.message)
@@ -53,7 +53,7 @@ class StrategyTest {
     @EnumSource(Indicator::class)
     fun shouldNotReportIfLevelLessThenThreshold(indicator: Indicator) {
 
-        val now = LocalDateTime.of(2017, 6, 25, 12, 0, 0)
+        val now = dayOfMonth25()
 
         val json = JsonObject().put("issues",
                 JsonArray(listOf(
@@ -82,7 +82,8 @@ class StrategyTest {
 
     @Test
     fun shouldExtractCreatedTimeWhenUsingThroughput() {
-        val now = LocalDateTime.of(2017, 6, 25, 12, 0, 0)
+
+        val now = dayOfMonth25()
 
         val json = JsonObject().put("issues",
                 JsonArray(listOf(
@@ -96,13 +97,14 @@ class StrategyTest {
 
         val event = JiraHandler(conf).handle(json, now)
 
-        assertEquals(3, event.level)
+        assertEquals(4, event.level)
         assertTrue(event.message.isNotBlank())
     }
 
     @Test
     fun shouldExtractStartedTimeWhenUsingSpeed() {
-        val now = LocalDateTime.of(2017, 6, 25, 12, 0, 0)
+
+        val now = dayOfMonth25()
 
         val json = JsonObject().put("issues",
                 JsonArray(listOf(
@@ -123,13 +125,14 @@ class StrategyTest {
 
         val event = JiraHandler(conf).handle(json, now)
 
-        assertEquals(3, event.level)
+        assertEquals(4, event.level)
         assertTrue(event.message.isNotBlank())
     }
 
     @Test
     fun shouldExtractStatusTimeWhenUsingStatus() {
-        val now = LocalDateTime.of(2017, 6, 25, 12, 0, 0)
+
+        val now = dayOfMonth25()
 
         val json = JsonObject().put("issues",
                 JsonArray(listOf(
@@ -150,14 +153,14 @@ class StrategyTest {
 
         val event = JiraHandler(conf).handle(json, now)
 
-        assertEquals(3, event.level)
+        assertEquals(4, event.level)
         assertTrue(event.message.isNotBlank())
     }
 
     @Test
     fun shouldReturnMaxOfCreationTimeWhenUsingThroughputMax() {
 
-        val now = LocalDateTime.of(2017, 6, 25, 12, 0, 0)
+        val now = dayOfMonth25()
 
         val json = JsonObject().put("issues",
                 JsonArray(listOf(
@@ -174,14 +177,14 @@ class StrategyTest {
 
         val event = JiraHandler(conf).handle(json, now)
 
-        assertEquals(6, event.level)
+        assertEquals(5, event.level)
         assertTrue(event.message.isNotBlank())
     }
 
     @Test
     fun shouldReturnAvgOfCreationTimeWhenUsingThroughputAvg() {
 
-        val now = LocalDateTime.of(2017, 6, 25, 12, 0, 0)
+        val now = dayOfMonth25()
 
         val json = JsonObject().put("issues",
                 JsonArray(listOf(
@@ -198,14 +201,14 @@ class StrategyTest {
 
         val event = JiraHandler(conf).handle(json, now)
 
-        assertEquals(4, event.level)
+        assertEquals(3, event.level)
         assertTrue(event.message.isNotBlank())
     }
 
     @Test
     fun shouldReturnSumOfCreationTimeWhenUsingThroughputSum() {
 
-        val now = LocalDateTime.of(2017, 6, 25, 12, 0, 0)
+        val now = dayOfMonth25()
 
         val json = JsonObject().put("issues",
                 JsonArray(listOf(
@@ -222,14 +225,14 @@ class StrategyTest {
 
         val event = JiraHandler(conf).handle(json, now)
 
-        assertEquals(9, event.level)
+        assertEquals(7, event.level)
         assertTrue(event.message.isNotBlank())
     }
 
     @Test
     fun shouldReturnMedianOfCreationTimeWhenUsingThroughputMedian1() {
 
-        val now = LocalDateTime.of(2017, 6, 25, 12, 0, 0)
+        val now = dayOfMonth25()
 
         val json = JsonObject().put("issues",
                 JsonArray(listOf(
@@ -244,14 +247,14 @@ class StrategyTest {
 
         val event = JiraHandler(conf).handle(json, now)
 
-        assertEquals(3, event.level)
+        assertEquals(2, event.level)
         assertTrue(event.message.isNotBlank())
     }
 
     @Test
     fun shouldReturnMedianOfCreationTimeWhenUsingThroughputMedian2() {
 
-        val now = LocalDateTime.of(2017, 6, 25, 12, 0, 0)
+        val now = dayOfMonth25()
 
         val json = JsonObject().put("issues",
                 JsonArray(listOf(
@@ -268,14 +271,14 @@ class StrategyTest {
 
         val event = JiraHandler(conf).handle(json, now)
 
-        assertEquals(4, event.level)
+        assertEquals(3, event.level)
         assertTrue(event.message.isNotBlank())
     }
 
     @Test
     fun shouldReturnMedianOfCreationTimeWhenUsingThroughputMedian3() {
 
-        val now = LocalDateTime.of(2017, 6, 25, 12, 0, 0)
+        val now = dayOfMonth25()
 
         val json = JsonObject().put("issues",
                 JsonArray(listOf(
@@ -297,4 +300,7 @@ class StrategyTest {
         assertEquals(3, event.level)
         assertTrue(event.message.isNotBlank())
     }
+
+    private fun dayOfMonth25() = ZonedDateTime.of(2017, 6, 25, 12,
+            0, 0, 0, ZoneId.systemDefault())
 }

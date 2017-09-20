@@ -7,8 +7,7 @@ import io.b3.dodogotchi.model.State
 import io.b3.dodogotchi.onStateChange
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
 
@@ -58,13 +57,8 @@ class Keeper(initState: State, private val conf: Config) {
 
         val now = Instant.now().toEpochMilli()
 
-        var hp = when {
-            (event == null) -> state.hp
-            (event.level < conf.indicatorThresholdInDays) -> MAX_HEALTH
-            else -> Math.max(0, MAX_HEALTH * (conf.indicatorThresholdMaxInDays - event.level) / (conf.indicatorThresholdMaxInDays
-                    - conf.indicatorThresholdInDays))
-        }
-
+        val maxRange = conf.indicatorThresholdMaxInDays - conf.indicatorThresholdInDays + 1
+        val hp = if (event == null) state.hp else Math.max(0, MAX_HEALTH * (maxRange - event.level) / maxRange)
         val sick = (hp < 40) // must be in sync with js
 
         var level = state.level
@@ -96,10 +90,11 @@ class Keeper(initState: State, private val conf: Config) {
         }
 
         if (evolutionTimestamp == 0L) {
-            evolutionTimestamp = LocalDateTime.now(ZoneOffset.UTC)
+            evolutionTimestamp = ZonedDateTime.now()
                     .withHour(conf.evolutionStartHour)
                     .withMinute(0)
-                    .toInstant(ZoneOffset.UTC)
+                    .withSecond(0)
+                    .toInstant()
                     .toEpochMilli()
         }
 
