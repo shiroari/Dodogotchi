@@ -63,7 +63,11 @@ class JiraHandler(private val conf: Config) : Handler {
             }.endHandler {
                 val body = buf.toJsonObject()
                 when (resp.statusCode()) {
-                    200 -> f.complete(handle(body, LocalDateTime.now()))
+                    200 -> {
+                        val event = handle(body, LocalDateTime.now())
+                        log.info("Response has been successfully processed: $event")
+                        f.complete(event)
+                    }
                     else -> {
                         log.error("Unexpected response: $body")
                         f.fail(fetchError())
@@ -117,13 +121,17 @@ class JiraHandler(private val conf: Config) : Handler {
         val msg: String = if (num == 0) {
             "There are no issues. Go grab some coffee."
         } else if (level < conf.indicatorThresholdInDays) {
-            "You have $num issue(s) and you are doing great!"
+            if (num == 1) {
+                "You have one issue in progress and you are doing great!"
+            } else {
+                "You have $num issues in progress and you are doing great!"
+            }
         } else {
             when (conf.indicatorStrategy) {
                 IndicatorStrategy.MAX ->
-                    "You have one issue stuck for more that $level days"
+                    "You have one issue stuck for more than $level days"
                 IndicatorStrategy.SUM, IndicatorStrategy.AVG, IndicatorStrategy.MEDIAN ->
-                    "You have $num issues stuck for more that $level days"
+                    "You have $num issues stuck for more than $level days"
             }
         }
 

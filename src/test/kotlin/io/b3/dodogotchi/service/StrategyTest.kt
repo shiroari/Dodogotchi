@@ -77,7 +77,7 @@ class StrategyTest {
 
         val event = JiraHandler(conf).handle(json, now)
 
-        assertEquals("You have 1 issue(s) and you are doing great!", event.message)
+        assertEquals("You have one issue in progress and you are doing great!", event.message)
     }
 
     @Test
