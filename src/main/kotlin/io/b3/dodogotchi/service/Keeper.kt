@@ -81,33 +81,30 @@ class Keeper(initState: State, private val conf: Config) {
             evolutionTimestamp = 0
         }
 
-        val sick = (hp < 40) // must be in sync with js
+        if (evolutionTimestamp > 0) {
 
-        if (!sick
-                && evolutionTimestamp > 0
-                && ((now - evolutionTimestamp) >= Duration.ofMinutes(conf.evolutionInternalInMin).toMillis())) {
+            val sick = (hp < 40) // must be in sync with js
 
-            levelProgress++
+            if (!sick && ((now - evolutionTimestamp) >= Duration.ofMinutes(conf.evolutionInternalInMin).toMillis())) {
 
-            if (levelProgress > 9) {
-                levelProgress = 0
-                level++
-                if (level > 2) {
-                    levelProgress = 9
-                    level = 2
+                levelProgress++
+
+                if (levelProgress > 9) {
+                    levelProgress = 0
+                    level++
+                    if (level > 2) {
+                        levelProgress = 9
+                        level = 2
+                    }
                 }
+
+                evolutionTimestamp = getEvolutionTimestamp()
             }
 
-            evolutionTimestamp = now
-        }
+        } else {
 
-        if (evolutionTimestamp == 0L) {
-            evolutionTimestamp = ZonedDateTime.now()
-                    .withHour(conf.evolutionStartHour)
-                    .withMinute(0)
-                    .withSecond(0)
-                    .toInstant()
-                    .toEpochMilli()
+            evolutionTimestamp = getEvolutionTimestamp()
+
         }
 
         return State(hp,
@@ -115,6 +112,15 @@ class Keeper(initState: State, private val conf: Config) {
                 levelProgress,
                 event?.message?:state.message,
                 evolutionTimestamp)
+    }
+
+    private fun getEvolutionTimestamp(): Long {
+        return ZonedDateTime.now()
+                .withHour(conf.evolutionStartHour)
+                .withMinute(0)
+                .withSecond(0)
+                .toInstant()
+                .toEpochMilli()
     }
 
 }

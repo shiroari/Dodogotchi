@@ -5,7 +5,6 @@ import io.b3.dodogotchi.model.Event
 import io.b3.dodogotchi.model.State
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.function.Executable
@@ -230,7 +229,6 @@ class EvolutionTest {
     }
 
     @Test
-    @Disabled
     fun shouldAlignEvolutionTimeWhenEvolutionHappened() {
 
         val keeper = newKeeper(evolutionStartHour = 10, lastEvolutionTimestamp = 1)
