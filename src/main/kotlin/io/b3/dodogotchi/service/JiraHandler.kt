@@ -84,6 +84,8 @@ class JiraHandler(private val conf: Config) : Handler {
 
     internal fun handle(json: JsonObject, now: ZonedDateTime): Event {
 
+        require(conf.indicatorThresholdInDays >= 0)
+
         val issues = json.getJsonArray("issues", JsonArray())
                 .map(this::asJsonObject)
 

@@ -27,12 +27,12 @@ evolutionStartHour: 9
 indicator: status
 
 # How do we aggregate parameters for found issues into single value (sum/max/avg/median)
-indicatorStrategy: max
+indicatorStrategy: sum
 
-# What value of indicator we consider as abnormal (dodogotchi's hp starts going down and
-# after hitting 20% dodogotchi stops evolving)
-indicatorThresholdInDays: 4
+# What indicator value we consider as abnormal (dodogotchi's hp starts going down and
+# after hitting 40% dodogotchi stops evolving)
+indicatorThresholdInDays: 5
 
-# What value of indicator we consider as critical (dodogotchi is dead). Range between
-# (indicatorThresholdInDays; indicatorThresholdMaxInDays) is reflected by hp indicator
-indicatorThresholdMaxInDays: 10
+# What indicator value we consider as critical (dodogotchi is dead). Range between
+# (indicatorThresholdInDays; indicatorThresholdMaxInDays] is reflected by hp indicator
+indicatorThresholdMaxInDays: 14

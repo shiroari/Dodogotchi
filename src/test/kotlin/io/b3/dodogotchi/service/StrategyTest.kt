@@ -49,37 +49,6 @@ class StrategyTest {
         assertEquals("There are no issues. Go grab some coffee.", event.message)
     }
 
-    @ParameterizedTest
-    @EnumSource(Indicator::class)
-    fun shouldNotReportIfLevelLessThenThreshold(indicator: Indicator) {
-
-        val now = dayOfMonth25()
-
-        val json = JsonObject().put("issues",
-                JsonArray(listOf(
-                        JsonObject()
-                                .put("fields", JsonObject().put("created", "2017-06-22T08:00:11.000+0500"))
-                                .put("changelog",
-                                    JsonObject().put("histories", JsonArray(listOf(
-                                        JsonObject()
-                                                .put("created", "2017-06-22T08:00:11.000+0500")
-                                                .put("items", JsonArray(listOf(JsonObject().put("field", "status")))),
-                                        JsonObject()
-                                                .put("created", "2017-06-23T08:00:11.000+0500")
-                                                .put("items", JsonArray(listOf(JsonObject().put("field", "status"))))
-                                )))
-                        ))))
-
-        val conf = Config(indicator = indicator,
-                indicatorStrategy = IndicatorStrategy.MAX,
-                indicatorThresholdInDays = 4,
-                indicatorThresholdMaxInDays = 10)
-
-        val event = JiraHandler(conf).handle(json, now)
-
-        assertEquals("You have one issue in progress and you are doing great!", event.message)
-    }
-
     @Test
     fun shouldExtractCreatedTimeWhenUsingThroughput() {
 
@@ -91,9 +60,7 @@ class StrategyTest {
                                 JsonObject().put("created", "2017-06-22T08:00:11.000+0500")))
                 ))
 
-        val conf = Config(indicator = Indicator.THROUGHPUT,
-                indicatorThresholdInDays = 0,
-                indicatorThresholdMaxInDays = 10)
+        val conf = Config(indicator = Indicator.THROUGHPUT, indicatorThresholdInDays = 0)
 
         val event = JiraHandler(conf).handle(json, now)
 
@@ -119,9 +86,7 @@ class StrategyTest {
                                         )))
                                 ))))
 
-        val conf = Config(indicator = Indicator.SPEED,
-                indicatorThresholdInDays = 0,
-                indicatorThresholdMaxInDays = 10)
+        val conf = Config(indicator = Indicator.SPEED, indicatorThresholdInDays = 0)
 
         val event = JiraHandler(conf).handle(json, now)
 
@@ -147,9 +112,7 @@ class StrategyTest {
                                 )))
                         ))))
 
-        val conf = Config(indicator = Indicator.STATUS,
-                indicatorThresholdInDays = 0,
-                indicatorThresholdMaxInDays = 10)
+        val conf = Config(indicator = Indicator.STATUS, indicatorThresholdInDays = 0)
 
         val event = JiraHandler(conf).handle(json, now)
 
@@ -172,8 +135,7 @@ class StrategyTest {
 
         val conf = Config(indicator = Indicator.THROUGHPUT,
                 indicatorStrategy = IndicatorStrategy.MAX,
-                indicatorThresholdInDays = 2,
-                indicatorThresholdMaxInDays = 10)
+                indicatorThresholdInDays = 2)
 
         val event = JiraHandler(conf).handle(json, now)
 
@@ -196,8 +158,7 @@ class StrategyTest {
 
         val conf = Config(indicator = Indicator.THROUGHPUT,
                 indicatorStrategy = IndicatorStrategy.AVG,
-                indicatorThresholdInDays = 2,
-                indicatorThresholdMaxInDays = 10)
+                indicatorThresholdInDays = 2)
 
         val event = JiraHandler(conf).handle(json, now)
 
@@ -220,8 +181,7 @@ class StrategyTest {
 
         val conf = Config(indicator = Indicator.THROUGHPUT,
                 indicatorStrategy = IndicatorStrategy.SUM,
-                indicatorThresholdInDays = 2,
-                indicatorThresholdMaxInDays = 10)
+                indicatorThresholdInDays = 2)
 
         val event = JiraHandler(conf).handle(json, now)
 
@@ -242,8 +202,7 @@ class StrategyTest {
 
         val conf = Config(indicator = Indicator.THROUGHPUT,
                 indicatorStrategy = IndicatorStrategy.MEDIAN,
-                indicatorThresholdInDays = 2,
-                indicatorThresholdMaxInDays = 10)
+                indicatorThresholdInDays = 2)
 
         val event = JiraHandler(conf).handle(json, now)
 
@@ -266,8 +225,7 @@ class StrategyTest {
 
         val conf = Config(indicator = Indicator.THROUGHPUT,
                 indicatorStrategy = IndicatorStrategy.MEDIAN,
-                indicatorThresholdInDays = 2,
-                indicatorThresholdMaxInDays = 10)
+                indicatorThresholdInDays = 2)
 
         val event = JiraHandler(conf).handle(json, now)
 
@@ -292,8 +250,7 @@ class StrategyTest {
 
         val conf = Config(indicator = Indicator.THROUGHPUT,
                 indicatorStrategy = IndicatorStrategy.MEDIAN,
-                indicatorThresholdInDays = 2,
-                indicatorThresholdMaxInDays = 10)
+                indicatorThresholdInDays = 2)
 
         val event = JiraHandler(conf).handle(json, now)
 

@@ -55,21 +55,33 @@ class Keeper(initState: State, private val conf: Config) {
 
     private fun handleEventInt(event: Event?) : State {
 
+        require(conf.indicatorThresholdInDays >=0 )
+        require(conf.indicatorThresholdMaxInDays < 365)
+        require(conf.indicatorThresholdInDays < conf.indicatorThresholdMaxInDays)
+
         val now = Instant.now().toEpochMilli()
+        val lastState = state
 
-        val maxRange = conf.indicatorThresholdMaxInDays - conf.indicatorThresholdInDays + 1
-        val hp = if (event == null) state.hp else Math.max(0, MAX_HEALTH * (maxRange - event.level) / maxRange)
-        val sick = (hp < 40) // must be in sync with js
+        val hp = if (event != null) {
+            val scale = conf.indicatorThresholdMaxInDays - conf.indicatorThresholdInDays + 1
+            val penalty = Math.max(0, event.level)
+            val delta = Math.max(0, scale - penalty)
+            MAX_HEALTH * delta / scale
+        } else {
+            lastState.hp
+        }
 
-        var level = state.level
-        var levelProgress = state.levelProgress
-        var evolutionTimestamp = state.evolutionTimestamp
+        var level = lastState.level
+        var levelProgress = lastState.levelProgress
+        var evolutionTimestamp = lastState.evolutionTimestamp
 
-        if (hp > 0 && state.hp <= 0) {
+        if (hp > 0 && lastState.hp <= 0) {
             level = 0
             levelProgress = 0
             evolutionTimestamp = 0
         }
+
+        val sick = (hp < 40) // must be in sync with js
 
         if (!sick
                 && evolutionTimestamp > 0

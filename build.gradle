@@ -59,18 +59,16 @@ dependencies {
   testRuntime("org.junit.jupiter:junit-jupiter-engine:$junit_version")  //JUnit5
   testRuntime("org.junit.vintage:junit-vintage-engine:4.12.0") //JUnit4
 
-  // Experiments
+  testCompile "com.nhaarman:mockito-kotlin:1.5.0"
+  testCompile 'org.amshove.kluent:kluent:1.29'
+  testCompile "org.assertj:assertj-core:3.8.0"
 
-  testCompile "com.pholser:junit-quickcheck-core:0.7"
+  // QuickTest
 
   testCompile "org.functionaljava:functionaljava:4.7"
   testCompile "org.functionaljava:functionaljava-java8:4.7"
   testCompile "org.functionaljava:functionaljava-quickcheck:4.7"
   testCompile "org.functionaljava:functionaljava-java-core:4.7"
-
-  testCompile "com.nhaarman:mockito-kotlin:1.5.0"
-  testCompile 'org.amshove.kluent:kluent:1.29'
-  testCompile "org.assertj:assertj-core:3.8.0"
 
 }
 

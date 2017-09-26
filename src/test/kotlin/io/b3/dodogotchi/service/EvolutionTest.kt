@@ -5,34 +5,41 @@ import io.b3.dodogotchi.model.Event
 import io.b3.dodogotchi.model.State
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.function.Executable
-import java.time.*
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @Tag("junit5")
 class EvolutionTest {
 
     private fun newKeeper(level: Int = 0,
-                  levelProgress: Int = 0,
-                  evolutionInternalInMin: Long = 0L,
-                  evolutionStartHour: Int = 0) =
+                          levelProgress: Int = 0,
+                          evolutionInternalInMin: Long = 0L,
+                          evolutionStartHour: Int = 0,
+                          threshold: Int = 0,
+                          scale: Int = 100,
+                          lastEvolutionTimestamp: Long = 1) =
             Keeper(State(hp = 100,
                     level = level,
                     levelProgress = levelProgress,
                     message = "",
-                    evolutionTimestamp = 0),
-            Config(indicatorThresholdInDays = 2,
-                    indicatorThresholdMaxInDays = 11,
+                    evolutionTimestamp = lastEvolutionTimestamp),
+            Config(indicatorThresholdInDays = threshold,
+                    indicatorThresholdMaxInDays = threshold + scale - 1,
                     evolutionInternalInMin = evolutionInternalInMin,
                     evolutionStartHour = evolutionStartHour))
 
     @Test
-    fun shouldBeNewbornAndHealthyOnStartIfStateIsOk() {
+    fun shouldBeNewbornAndHealthyOnStart() {
 
         val keeper = newKeeper()
-
-        keeper.updateWithEvent(Event(0, "Hello world"))
 
         val state = keeper.state
 
@@ -44,64 +51,79 @@ class EvolutionTest {
     }
 
     @Test
-    fun shouldBeDeadOnStartIfStateIsNotOk() {
+    fun shouldEvolveAfterGetting9Pt() {
 
-        val keeper = newKeeper()
+        val keeper = newKeeper(scale = 10)
 
-        keeper.updateWithEvent(Event(11, "Bye bye world"))
+        // Progressing up to 9 points on level 0
 
-        val state = keeper.state
-
-        assertAll(
-                Executable { assertEquals(0, state.hp) },
-                Executable { assertEquals(0, state.level) },
-                Executable { assertEquals(0, state.levelProgress) }
-        )
-    }
-
-    @Test
-    fun shouldEvolveIfStateIsOk() {
-
-        val keeper = newKeeper()
-
-        keeper.updateWithEvent(Event(0, ""))
-        keeper.update()
-        keeper.update()
+        for (i in 1..9) { // gives 9 cycles
+            keeper.updateWithEvent(Event(0, "Newbie"))
+        }
 
         val state1 = keeper.state
 
         assertAll(
-                Executable { assertEquals(100, state1.hp) },
                 Executable { assertEquals(0, state1.level) },
-                Executable { assertEquals(2, state1.levelProgress) }
+                Executable { assertEquals(9, state1.levelProgress) }
         )
 
-        for (i in 3..10) {
-            keeper.updateWithEvent(Event(6, ""))
-        }
+        // Getting next level
+
+        keeper.updateWithEvent(Event(0, "Getting older"))
 
         val state2 = keeper.state
 
         assertAll(
-                Executable { assertEquals(40, state2.hp) },
                 Executable { assertEquals(1, state2.level) },
                 Executable { assertEquals(0, state2.levelProgress) }
         )
+
+        // Progressing up to 9 points on level 1
+
+        for (i in 1..9) { // gives more 9 cycles
+            keeper.updateWithEvent(Event(0, "Forever young"))
+        }
+
+        val state3 = keeper.state
+
+        assertAll(
+                Executable { assertEquals(1, state3.level) },
+                Executable { assertEquals(9, state3.levelProgress) }
+        )
     }
 
-    @Test
-    fun shouldNotEvolveIfSick() {
+    @ParameterizedTest
+    @ValueSource(ints = intArrayOf(0, 1, 2, 3, 4, 5, 6))
+    fun shouldEvolveIfHealthEqualsOrGreaterThen40Percent(penalty: Int) {
 
-        val keeper = newKeeper()
+        val keeper = newKeeper(scale = 10)
 
-        for (i in 0..5) {
-            keeper.updateWithEvent(Event(7, "Sick"))
+        for (i in 0..30) {
+            keeper.updateWithEvent(Event(penalty, "It's fine"))
         }
 
         val state = keeper.state
 
         assertAll(
-                Executable { assertEquals(30, state.hp) },
+                Executable { assertEquals(2, state.level) },
+                Executable { assertEquals(9, state.levelProgress) }
+        )
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = intArrayOf(7, 8, 9, 10))
+    fun shouldNotEvolveIfHealthLessThen40Percent(penalty: Int) {
+
+        val keeper = newKeeper(scale = 10)
+
+        for (i in 0..30) {
+            keeper.updateWithEvent(Event(penalty, "Sick"))
+        }
+
+        val state = keeper.state
+
+        assertAll(
                 Executable { assertEquals(0, state.level) },
                 Executable { assertEquals(0, state.levelProgress) }
         )
@@ -110,16 +132,15 @@ class EvolutionTest {
     @Test
     fun shouldEvolveUpToLevel3() {
 
-        val keeper = newKeeper(level = 2, levelProgress = 0)
+        val keeper = newKeeper(level = 2, levelProgress = 9)
 
-        for (i in 0..11) {
-            keeper.updateWithEvent(Event(0, ""))
+        for (i in 1..10) {
+            keeper.updateWithEvent(Event(0, "No more levels"))
         }
 
         val state = keeper.state
 
         assertAll(
-                Executable { assertEquals(100, state.hp) },
                 Executable { assertEquals(2, state.level) },
                 Executable { assertEquals(9, state.levelProgress) }
         )
@@ -128,9 +149,9 @@ class EvolutionTest {
     @Test
     fun shouldNotLoseEvolutionPointsIfDead() {
 
-        val keeper = newKeeper(level = 2, levelProgress = 4)
+        val keeper = newKeeper(level = 2, levelProgress = 4, scale = 10)
 
-        keeper.updateWithEvent(Event(11, "Die"))
+        keeper.updateWithEvent(Event(10, "Die"))
 
         val state = keeper.state
 
@@ -144,9 +165,9 @@ class EvolutionTest {
     @Test
     fun shouldResetEvolutionPointsAfterResurrecting() {
 
-        val keeper = newKeeper(level = 2, levelProgress = 4)
+        val keeper = newKeeper(level = 2, levelProgress = 4, scale = 10)
 
-        keeper.updateWithEvent(Event(11, "Die"))
+        keeper.updateWithEvent(Event(10, "Die"))
         keeper.updateWithEvent(Event(0, ""))
 
         val state = keeper.state
@@ -163,39 +184,23 @@ class EvolutionTest {
 
         val keeper = newKeeper(evolutionInternalInMin = 1440L)
 
-        keeper.updateWithEvent(Event(0, ""))
-        keeper.update()
-        keeper.update()
-        keeper.update()
+        for (i in 1..10) {
+            keeper.updateWithEvent(Event(0, ""))
+        }
 
         val state = keeper.state
 
         assertAll(
                 Executable { assertEquals(100, state.hp) },
                 Executable { assertEquals(0, state.level) },
-                Executable { assertEquals(0, state.levelProgress) }
+                Executable { assertEquals(1, state.levelProgress) }
         )
-    }
-
-    @Test
-    fun shouldDecreaseHPIfThresholdHasBeenExceeded() {
-
-        val keeper = newKeeper()
-
-        keeper.updateWithEvent(Event(0, "Ok"))
-        assertEquals(100, keeper.state.hp)
-
-        keeper.updateWithEvent(Event(6, "Still Ok"))
-        assertEquals(40, keeper.state.hp)
-
-        keeper.updateWithEvent(Event(7, "Sick"))
-        assertEquals(30, keeper.state.hp)
     }
 
     @Test
     fun shouldUsePreviousStateIfEventIsEmpty() {
 
-        val keeper = newKeeper(level = 2, levelProgress = 4)
+        val keeper = newKeeper(level = 2, levelProgress = 4, scale = 10)
 
         keeper.updateWithEvent(Event(5, ""))
         keeper.update()
@@ -206,14 +211,14 @@ class EvolutionTest {
         assertAll(
                 Executable { assertEquals(50, state.hp) },
                 Executable { assertEquals(2, state.level) },
-                Executable { assertEquals(6, state.levelProgress) }
+                Executable { assertEquals(7, state.levelProgress) }
         )
     }
 
     @Test
-    fun shouldAlignEvolutionTimeToConfiguration() {
+    fun shouldAlignEvolutionTimeOnStart() {
 
-        val keeper = newKeeper(evolutionStartHour = 10)
+        val keeper = newKeeper(evolutionStartHour = 10, lastEvolutionTimestamp = 0)
 
         keeper.update()
 
@@ -222,6 +227,33 @@ class EvolutionTest {
 
         assertEquals(10, datetime.hour)
         assertEquals(0, datetime.minute)
+    }
+
+    @Test
+    @Disabled
+    fun shouldAlignEvolutionTimeWhenEvolutionHappened() {
+
+        val keeper = newKeeper(evolutionStartHour = 10, lastEvolutionTimestamp = 1)
+
+        keeper.update()
+
+        val instant = Instant.ofEpochMilli(keeper.state.evolutionTimestamp)
+        val datetime = ZonedDateTime.ofInstant(instant, ZoneId.systemDefault())
+
+        assertEquals(10, datetime.hour)
+        assertEquals(0, datetime.minute)
+    }
+
+    @Test
+    fun shouldNotUpdateEvolutionTimeIfNoEvolutionHappened() {
+
+        val now = Instant.now().toEpochMilli() + Duration.ofMinutes(5).toMillis()
+
+        val keeper = newKeeper(lastEvolutionTimestamp = now)
+
+        keeper.update()
+
+        assertEquals(now, keeper.state.evolutionTimestamp)
     }
 
 }
