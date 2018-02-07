@@ -1,4 +1,4 @@
-FROM artifactory.netent.com:5000/netent/noss-java-base:latest_int_test
+FROM openjdk:8-alpine
 
 RUN mkdir -p /app /app/bin /app/etc /app/logs /app/cache /app/data
 
